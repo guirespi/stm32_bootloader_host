@@ -24,7 +24,7 @@ typedef enum
 	APP_BOOTLOADER_CMD_DOWNLOAD_PARAM_RES, /*< Host download parameters response */
 	APP_BOOTLOADER_CMD_DOWNLOAD_BLOCK_REQ, /*< Client download block request */
 	APP_BOOTLOADER_CMD_DOWNLOAD_BLOCK_RES, /*< Host download block response */
-	APP_BOOTLOADER_CMD_DOWNLOAD_END, /*< Client download end signal */
+	APP_BOOTLOADER_CMD_END, /*< Client end signal */
 
 	/**< Commands to boot applications */
 	APP_BOOTLOADER_CMD_BOOT_APP,
@@ -36,6 +36,7 @@ typedef enum
 
 	/*< Command for error message */
 	APP_BOOTLOADER_CMD_ERROR,
+	APP_BOOTLOADER_CMD_RETRANSMIT,
 
 	APP_BOOTLOADER_CMD_MAX, /*< Boundary of available commands */
 }app_bootloader_command;

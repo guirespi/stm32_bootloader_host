@@ -88,7 +88,7 @@ int app_bootloader_build_dl_block_res(app_bootloader_build_res_t * build_digest,
 
 int app_bootloader_build_dl_end(app_bootloader_build_res_t * build_digest)
 {
-	return app_bootloader_command_build(APP_BOOTLOADER_CMD_DOWNLOAD_END, NULL, 0, build_digest);
+	return app_bootloader_command_build(APP_BOOTLOADER_CMD_END, NULL, 0, build_digest);
 }
 
 int app_bootloader_build_boot_app(app_bootloader_build_res_t * build_digest, uint8_t partition_nbr)
@@ -96,7 +96,7 @@ int app_bootloader_build_boot_app(app_bootloader_build_res_t * build_digest, uin
 	app_bootloader_cmd_boot_app cmd_data = {.partition_nbr = partition_nbr};
 	void * data = (void *) &cmd_data;
 	uint32_t data_size = sizeof(cmd_data);
-	return app_bootloader_command_build(APP_BOOTLOADER_CMD_DOWNLOAD_REQ, data, data_size, build_digest);
+	return app_bootloader_command_build(APP_BOOTLOADER_CMD_BOOT_APP, data, data_size, build_digest);
 }
 
 int app_bootloader_build_error(app_bootloader_build_res_t * build_digest, uint8_t error, char * message)
@@ -134,6 +134,7 @@ int app_bootloader_command_check(uint8_t * buffer, uint16_t buffer_size, app_boo
 
 	switch((app_bootloader_command) frame->command)
 	{
+		case APP_BOOTLOADER_CMD_RETRANSMIT:
 		case APP_BOOTLOADER_CMD_HELLO:
 		{
 			res = APP_BOOTLOADER_CMD_OK;
@@ -159,7 +160,7 @@ int app_bootloader_command_check(uint8_t * buffer, uint16_t buffer_size, app_boo
 			}
 			break;
 		}
-		case APP_BOOTLOADER_CMD_DOWNLOAD_END:
+		case APP_BOOTLOADER_CMD_END:
 		{
 			res = APP_BOOTLOADER_CMD_OK;
 			break;

@@ -36,7 +36,7 @@ typedef enum
 	APP_BOOTLOADER_STATE_DISABLE = -1,
 	APP_BOOTLOADER_STATE_INIT,
 	APP_BOOTLOADER_STATE_READY,
-    APP_BOOTLOADER_STATE_DL_FINISH,
+    APP_BOOTLOADER_STATE_FINISH,
 }app_bootloader_state_t;
 
 typedef struct
@@ -48,7 +48,7 @@ typedef struct
 static volatile app_bootloader_t app_bootloader = {0};
 
 static FILE * file = NULL;
-static int port;
+static int port = -1;
 
 static uint8_t buffer[BOOTLOADER_HOST_BUFFER_SIZE];
 
@@ -60,13 +60,35 @@ static void log_output_function(uint8_t * data, uint16_t data_size)
 
 static void bootloader_close_files(void)
 {
-    fclose(file);
-    close(port);
+    if(file != NULL)
+        fclose(file);
+    if(port > 0)
+        close(port);
 }
 
 static int bootloader_port_recv(uint8_t * buffer, uint32_t buffer_size)
 {
+    int total_recv = 0;
     int recv = read(port, buffer, buffer_size);
+    if(recv > 0)
+    {
+        total_recv += recv;
+        while(total_recv < sizeof(app_bootloader_frame_t))
+        {
+            recv = read(port, buffer + total_recv, buffer_size - total_recv);
+            if(recv > 0)
+                total_recv += recv;
+        }
+        /* Complete frame */
+        app_bootloader_frame_t * frame = (app_bootloader_frame_t *)buffer;
+        while(total_recv < sizeof(app_bootloader_frame_t) + frame->total_length)
+        {
+            recv = read(port, buffer + total_recv, buffer_size - total_recv);
+            if(recv > 0)
+                total_recv += recv;
+        }
+    }
+    return total_recv;
 }
 
 static int bootloader_port_send(uint8_t * data, uint32_t data_size)
@@ -164,6 +186,9 @@ static int app_bootloader_process_command(bool download, bool boot, app_bootload
             app_bootloader.dl_status.actual_block_nbr = 0;
             app_bootloader.dl_status.actual_size = 0;
             app_bootloader.dl_status.total_block_nbr = (uint32_t) (app_bootloader.dl_status.total_size/app_bootloader.dl_status.block_size);
+            
+            if(app_bootloader.dl_status.total_size%app_bootloader.dl_status.block_size != 0)
+                app_bootloader.dl_status.total_block_nbr++;
 
             rt = app_bootloader_build_dl_param_res(build_digest, dl_param_req->type, app_bootloader.dl_status.total_block_nbr, dl_param_req->block_size);
             break;
@@ -198,10 +223,9 @@ static int app_bootloader_process_command(bool download, bool boot, app_bootload
             free(buffer);
             break;
         }
-        case APP_BOOTLOADER_CMD_DOWNLOAD_END:
+        case APP_BOOTLOADER_CMD_END:
         {
-            app_bootloader.state = APP_BOOTLOADER_STATE_DL_FINISH;
-            print_serial_info("Download complete!");
+            app_bootloader.state = APP_BOOTLOADER_STATE_FINISH;
             break;
         }
         case APP_BOOTLOADER_CMD_ERROR:
@@ -291,18 +315,26 @@ int main(int argc, char ** argv)
         }
     }
 
+    printf("bflag %d dflag %d part %d pvalue %s\n", bflag,dflag,partition_nbr,pvalue);
+
     if(iflag)
     {
         /* Request partition info */
     }
-    else if((bflag || dflag) && fvalue != NULL && partition_nbr != -1 && pvalue != NULL)
+    else if((bflag && partition_nbr != -1 && pvalue != NULL) || (dflag && fvalue != NULL && partition_nbr != -1 && pvalue != NULL))
     {
         /* Start download or boot */
-        int err = bootloader_open_file(fvalue);
-        if(err != 0)
+        int err = 0;
+        if(fvalue != NULL)
         {
-            print_serial_error("Can not load program file");
-            goto finish;
+            err = bootloader_open_file(fvalue);
+            if(err != 0)
+            {
+                print_serial_error("Can not load program file");
+                goto finish;
+            }
+            app_bootloader.dl_status.total_size = bootloader_get_file_size();
+            print_serial_info("All set to download %d bytes file", app_bootloader.dl_status.total_size);
         }
         
         err = bootloader_open_port(pvalue);
@@ -312,18 +344,19 @@ int main(int argc, char ** argv)
             goto finish;
         }
 
-        app_bootloader.dl_status.total_size = bootloader_get_file_size();
         app_bootloader.dl_status.partition_nbr = (uint8_t)partition_nbr;
-        print_serial_info("All set to download %d bytes file", app_bootloader.dl_status.total_size);
-
         print_serial_info("Waiting for client response");
 
+        app_bootloader_build_res_t build_digest = {0};
         while(true)
         {
-            app_bootloader_build_res_t build_digest = {0};
             if(app_bootloader.state == APP_BOOTLOADER_STATE_INIT)
             {
+                free(build_digest.frame);
+                build_digest.frame_size = 0;
+                build_digest.frame = NULL;
                 int rt = app_bootloader_build_host_hello(&build_digest);
+                rt = bootloader_port_send(build_digest.frame, build_digest.frame_size);
             }
 
             memset(buffer, 0, sizeof(buffer));
@@ -335,23 +368,32 @@ int main(int argc, char ** argv)
                 app_bootloader_frame_t * command_digest = NULL;
                 int rt = app_bootloader_command_check(buffer, recv, &command_digest);
                 print_serial_warn("Check command returned %d", rt);
-                if(rt == APP_BOOTLOADER_CMD_OK)
+                if(command_digest->command == APP_BOOTLOADER_CMD_RETRANSMIT)
+                    print_serial_info("Retransmit received");
+                if(rt == APP_BOOTLOADER_CMD_OK && command_digest->command != APP_BOOTLOADER_CMD_RETRANSMIT)
                 {
+                    free(build_digest.frame);
+                    build_digest.frame_size = 0;
+                    build_digest.frame = NULL;
                     rt = app_bootloader_process_command(dflag, bflag, command_digest, &build_digest);
                     print_serial_warn("Process command returned %d", rt);
                 }
             }
 
-            if(build_digest.frame != NULL)
+            if(build_digest.frame != NULL && recv > 0)
             {
+                print_serial_info("Sending");
+                print_serial_hex(build_digest.frame, sizeof(app_bootloader_frame_t));
                 int err = bootloader_port_send(build_digest.frame, build_digest.frame_size);
                 print_serial_warn("Send port returned %d", err);
-                usleep(500000);
-                free(build_digest.frame);
             }
 
-            if(app_bootloader.state == APP_BOOTLOADER_STATE_DL_FINISH)
+            if(app_bootloader.state == APP_BOOTLOADER_STATE_FINISH)
+            {
+                print_serial_info("Operation complete!");
                 break;
+            }
+            usleep(200000);
         }
     }
     else
