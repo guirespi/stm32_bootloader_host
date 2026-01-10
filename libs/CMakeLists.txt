@@ -1,1 +1,5 @@
-add_subdirectory(api_log)
+# add_subdirectory(api_log)
+add_subdirectory(ezm_utility)
+add_subdirectory(ezm_api_log)
+add_subdirectory(ezm_api_console)
+add_subdirectory(ezm_pp)

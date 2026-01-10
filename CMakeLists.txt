@@ -1,43 +1,32 @@
 cmake_minimum_required(VERSION 3.22)
 
-set(srcs 
-    "src/app_bootloader_host.c"
-    "src/app_bootloader_command.c"
-)
-
-set(
-    public_inc_dir 
-    "inc"
-)
-
-set(
-    private_inc_dir
-    ""
+project(
+    app_production_host
+    VERSION 1.0.0
+    DESCRIPTION "Production application for host"
 )
 
 set(CMAKE_C_STANDARD 11)
 
-# Add libs subdirectory 
+set(srcs
+    "src/app_production.c"
+)
+
+if(WIN32)
+    add_compile_definitions(CONFIG_HOST_BUILD)
+    add_compile_definitions($<$<CONFIG:Debug>:CONFIG_LOGS_ENABLE>)
+endif()
+
 add_subdirectory(libs)
 
-set(lib_name "app_bootloader_host")
+add_executable(app_production_host ${srcs})
 
-project(
-    ${lib_name}
-    VERSION 1.0.0
-    DESCRIPTION "Bootloader application for host"    
-)
-
-add_executable(${lib_name} ${srcs})
-target_include_directories(
-    ${lib_name}
-    PUBLIC
-    ${public_inc_dir}
-    PRIVATE
-    ${private_inc_dir}    
-)
+message(STATUS "HOST Build is: ${CONFIG_HOST_BUILD}")
 
 target_link_libraries(
-    ${lib_name}
-    api_log
+    app_production_host
+    ezm_api_log
+    ezm_utility
+    ezm_api_console
+    ezm_pp
 )
