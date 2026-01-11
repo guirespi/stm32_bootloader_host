@@ -102,7 +102,9 @@ uint32_t ezm_pp_uart_drv_transmit(void *buffer, uint32_t pp_pkt_len) {
   }
 
   print_serial_log_debug("Transmitting %d bytes over UART", total_len);
-  print_serial_log_buffer(buffer, total_len); 
+  if(total_len <64) {
+    print_serial_log_buffer(buffer, total_len); 
+  }
   ezm_console_send_data(buffer, total_len);
 
   return total_len;

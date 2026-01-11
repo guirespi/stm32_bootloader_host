@@ -126,13 +126,13 @@ static int cmd_upload(int argc, char **argv)
 
 static int cmd_load(int argc, char **argv)
 {
-    if(flag & PRODUCTION_IMG_UPLOADED == 0) {
-        CONSOLE_OUTPUT("No image uploaded. Use 'upload' command first.\n");
+    if(argc < 2) {
+        CONSOLE_OUTPUT("Usage: load [img_index]\n");
         return 0;
     }
 
-    if(argc < 2) {
-        CONSOLE_OUTPUT("Usage: load [img_index]\n");
+    if((flag & PRODUCTION_IMG_UPLOADED) == 0) {
+        CONSOLE_OUTPUT("No image uploaded. Use 'upload' command first.\n");
         return 0;
     }
 
@@ -147,6 +147,9 @@ static int cmd_load(int argc, char **argv)
                 action == EZM_PP_ACTION_HOST_ERROR_DOWNLOAD ||
                 action == EZM_PP_ACTION_HOST_END_DOWNLOAD)
                 break;
+            if(action == EZM_PP_ACTION_WAIT_FOR_NEXT_BLOCK) {
+                ezm_pp_drv_set_msg(0, EZM_PP_ACTION_WAIT_FOR_NEXT_BLOCK, EZM_PP_DRV_SERIAL, 0);
+            }
         }
     } else {
         CONSOLE_OUTPUT("Invalid image index\n");
@@ -199,9 +202,12 @@ int main(void)
     CONSOLE_OUTPUT("Welcome to production application!\n");
     flag |= PRODUCTION_PORT_OPENED;
 
+    dispatch(2, (char*[]){"upload", "prog00"});
     while(1) {
         CONSOLE_OUTPUT(">");
         uint8_t input_buffer[128] = {0};
+        
+        // dispatch(2, (char*[]){"load", "0"});
 
         if (!fgets(input_buffer, sizeof(input_buffer), stdin))
             break;

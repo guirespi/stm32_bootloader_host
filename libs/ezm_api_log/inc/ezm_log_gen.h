@@ -16,15 +16,15 @@
 #define DEFINE_TAG() static const char *TAG = __FILENAME__
 #include "ezm_api_log.h"
 #define print_serial_log(format, ...) \
-    EZM_LOG_LEVEL(EZM_LOG_INFO, TAG, "%d " format "\n", __LINE__, ##__VA_ARGS__)
+    EZM_LOG_LEVEL(EZM_LOG_INFO, TAG, "%d " format , __LINE__, ##__VA_ARGS__)
 #define print_serial_log_warning(format, ...) \
-    EZM_LOG_LEVEL(EZM_LOG_WARN, TAG, "%d " format "\n", __LINE__, ##__VA_ARGS__)
+    EZM_LOG_LEVEL(EZM_LOG_WARN, TAG, "%d " format , __LINE__, ##__VA_ARGS__)
 #define print_serial_log_error(format, ...) \
-    EZM_LOG_LEVEL(EZM_LOG_ERROR, TAG, "%d " format "\n", __LINE__, ##__VA_ARGS__)
+    EZM_LOG_LEVEL(EZM_LOG_ERROR, TAG, "%d " format , __LINE__, ##__VA_ARGS__)
 #define print_serial_log_debug(format, ...) \
-    EZM_LOG_LEVEL(EZM_LOG_DEBUG, TAG, "%d " format "\n", __LINE__, ##__VA_ARGS__)
+    EZM_LOG_LEVEL(EZM_LOG_DEBUG, TAG, "%d " format , __LINE__, ##__VA_ARGS__)
 #define print_serial_log_verbose(format, ...) \
-    EZM_LOG_LEVEL(EZM_LOG_VERBOSE, TAG, "%d " format "\n", __LINE__, ##__VA_ARGS__)
+    EZM_LOG_LEVEL(EZM_LOG_VERBOSE, TAG, "%d " format , __LINE__, ##__VA_ARGS__)
 #define print_serial_log_buffer(data, datalen) EZM_LOG_HEXDUMP(TAG, data, datalen, EZM_LOG_DEBUG);
 #else
 #define DEFINE_TAG()

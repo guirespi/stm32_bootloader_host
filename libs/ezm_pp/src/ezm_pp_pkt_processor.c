@@ -497,6 +497,7 @@ pp_pkt_processor_get_block(ezm_pp_obj_t *sender, ezm_pp_obj_t *receiver,
     // If the receiver is a host, send the block.
     *comp_code = EZM_PP_SUCCESS;
     action = ezm_pp_ep_drv_get_download_block(rx_pkt, tx_pkt);
+    print_serial_log("Block requested returned %d", action);
     if(action == EZM_PP_ACTION_HOST_END_DOWNLOAD) {
       *comp_code = EZM_PP_ERROR_NO_RESPONSE;
     } else if(action == EZM_PP_ACTION_HOST_ERROR_DOWNLOAD) {
@@ -679,7 +680,14 @@ static ezm_pp_action_t pp_pkt_processor_download_res(
   ezm_pp_action_t action = EZM_PP_ACTION_NO_RESPONSE;
   *comp_code = EZM_PP_SUCCESS;
 
-  // TODO: Process download response if necessary.
+  if(receiver->role == EZM_PP_OBJ_ROLE_HOST) {
+    if(rx_pkt->msg.ctrl_msg_res_gen.cmd_res == EZM_PP_SUCCESS) {
+       action = EZM_PP_ACTION_WAIT_FOR_NEXT_BLOCK;  
+       print_serial_log("Download parameters received:");
+       print_serial_log("  Blocks: %d", rx_pkt->msg.download_res.block_number);
+       print_serial_log("  Blocks size: %d", rx_pkt->msg.download_res.block_size);
+    }
+  }
 
   return action;
 }
@@ -708,13 +716,6 @@ static ezm_pp_action_t pp_pkt_processor_boot_img_res(
 
   ezm_pp_action_t action = EZM_PP_NO_ACTION;
   *comp_code = EZM_PP_SUCCESS;
-
-  if(receiver->role == EZM_PP_OBJ_ROLE_HOST) {
-    print_serial_log("Download parameters received:");
-    print_serial_log("  Blocks: %d", rx_pkt->msg.download_res.block_number);
-    print_serial_log("  Blocks size: %d", rx_pkt->msg.download_res.block_size);
-    action = EZM_PP_ACTION_WAIT_FOR_NEXT_BLOCK;
-  }
 
   return action;
 }

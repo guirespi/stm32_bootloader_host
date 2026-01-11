@@ -74,11 +74,11 @@ int ezm_console_arch_init(void * console_hdle)
     }
 
     COMMTIMEOUTS timeouts = {0};
-    timeouts.ReadIntervalTimeout = 5;
-    timeouts.ReadTotalTimeoutConstant = 500;
+    timeouts.ReadIntervalTimeout = 1;
+    timeouts.ReadTotalTimeoutConstant = 200;
     timeouts.ReadTotalTimeoutMultiplier = 0;
-    timeouts.WriteTotalTimeoutConstant = 500;
-    timeouts.WriteTotalTimeoutMultiplier = 0;
+    timeouts.WriteTotalTimeoutConstant = 200;
+    timeouts.WriteTotalTimeoutMultiplier = 1;
 
     if (!SetCommTimeouts(hSerial, &timeouts)) {
         print_serial_log_error("Error: SetCommTimeouts failed");

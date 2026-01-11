@@ -12,6 +12,8 @@ set(srcs
     "src/app_production.c"
 )
 
+add_compile_options(-fpack-struct=1)
+
 if(WIN32)
     add_compile_definitions(CONFIG_HOST_BUILD)
     add_compile_definitions($<$<CONFIG:Debug>:CONFIG_LOGS_ENABLE>)
