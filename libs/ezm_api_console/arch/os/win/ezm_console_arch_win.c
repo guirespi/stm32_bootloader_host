@@ -105,8 +105,8 @@ int ezm_console_arch_send_async(uint8_t * data, uint16_t data_size)
         return EZM_CONSOLE_ARCH_E_IO;
     } else {
         print_serial_log_verbose("%d bytes written", (int)bytesWritten);
-        return EZM_CONSOLE_ARCH_OK;
     }
+    return EZM_CONSOLE_ARCH_OK;
 }
 
 int ezm_console_arch_receive_async(uint8_t * data, uint16_t data_size) 
@@ -116,15 +116,34 @@ int ezm_console_arch_receive_async(uint8_t * data, uint16_t data_size)
     BOOL success = ReadFile(
         hSerial,
         data,
-        data_size, // Leave space for null terminator
+        4, // Just read header
         &bytesRead,
         NULL // Must be NULL for non-overlapped I/O
     );
 
     if (!success) {
         print_serial_log_verbose("Error: ReadFile failed");
+        return bytesRead;
+    }
+
+    if(bytesRead == 0 || bytesRead < 4) {
+        // No new frame received
     } else {
-        print_serial_log_verbose("%d bytes read", (int)bytesRead);
+        uint16_t expected_data = (*(uint16_t *)&data[2]) - 4;
+        success = ReadFile(
+            hSerial,
+            data + 4,
+            expected_data, // Leave space for null terminator
+            &bytesRead,
+            NULL // Must be NULL for non-overlapped I/O
+        );
+        if(!success) {
+            print_serial_log_verbose("Error: ReadFile failed");
+            return bytesRead;
+        } else {
+            bytesRead += 4;
+            print_serial_log_verbose("%d bytes received", (int)bytesRead);
+        }
     }
     return bytesRead;
 }

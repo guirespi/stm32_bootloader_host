@@ -656,6 +656,7 @@ static ezm_pp_action_t pp_pkt_processor_get_img_info_res(
       print_serial_log("Image Info: Invalid Image Index | Unused");
     } else {
       print_serial_log("Image [%d] info retrieved:", rx_pkt->msg.get_img_info_res.img_status);
+      print_serial_log(" Name: %s", rx_pkt->msg.get_img_info_res.img_name);
       print_serial_log(" Type: %d", rx_pkt->msg.get_img_info_res.img_type);
       print_serial_log(" Size: %d bytes", rx_pkt->msg.get_img_info_res.img_size);
       print_serial_log(" Version: %d.%d.%d.%d",
