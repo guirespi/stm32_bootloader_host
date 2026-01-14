@@ -497,7 +497,6 @@ pp_pkt_processor_get_block(ezm_pp_obj_t *sender, ezm_pp_obj_t *receiver,
     // If the receiver is a host, send the block.
     *comp_code = EZM_PP_SUCCESS;
     action = ezm_pp_ep_drv_get_download_block(rx_pkt, tx_pkt);
-    print_serial_log("Block requested returned %d", action);
     if(action == EZM_PP_ACTION_HOST_END_DOWNLOAD) {
       *comp_code = EZM_PP_ERROR_NO_RESPONSE;
     } else if(action == EZM_PP_ACTION_HOST_ERROR_DOWNLOAD) {
@@ -667,8 +666,6 @@ static ezm_pp_action_t pp_pkt_processor_get_img_info_res(
     }
   }
 
-  // TODO: Process img info response if necessary.
-
   return action;
 }
 
@@ -717,6 +714,14 @@ static ezm_pp_action_t pp_pkt_processor_boot_img_res(
 
   ezm_pp_action_t action = EZM_PP_NO_ACTION;
   *comp_code = EZM_PP_SUCCESS;
+
+  if(receiver->role == EZM_PP_OBJ_ROLE_HOST) {
+    if(rx_pkt->msg.ctrl_msg_res_gen.cmd_res == EZM_PP_SUCCESS) {
+      print_serial_log("Device will start booting");
+    } else {
+      print_serial_log_error("Error booting image in device");
+    }
+  }
 
   return action;
 }

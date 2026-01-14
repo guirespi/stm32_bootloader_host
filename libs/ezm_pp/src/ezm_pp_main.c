@@ -117,6 +117,7 @@ ezm_pp_action_t ezm_pp_main(void) {
     case EZM_PP_ACTION_DISCARD_INVALID_PACKET: {
       break;
     }
+    case EZM_PP_ACTION_HOST_WAIT:
     case EZM_PP_ACTION_WAIT_FOR_NEXT_BLOCK:
     case EZM_PP_NO_ACTION: {
       break;
@@ -163,6 +164,16 @@ ezm_pp_action_t ezm_pp_main(void) {
     case EZM_PP_ACTION_REQ_NEXT_BLOCK: {
       ezm_pp_main_req_next_block(drv_msg.action, &drv_msg, ezm_pp_tx_buffer);
       break;
+    }
+    case EZM_PP_ACTION_REQ_BOOT_IMG: {
+        uint32_t pp_pkt_len = ezm_pp_pkt_maker_boot_img_req(
+        &ezm_pp_host_obj, 
+        &ezm_pp_ep_obj, 
+        drv_msg.drv_id, 
+        ezm_pp_tx_buffer,
+        (uint8_t)drv_msg.arg
+        );
+      ezm_pp_main_send_packet(&ezm_pp_host_obj, &ezm_pp_ep_obj, ezm_pp_tx_buffer, pp_pkt_len);
     }
     case EZM_PP_ACTION_BOOT_IMG: {
       int rt = ezm_pp_ep_drv_boot_img();

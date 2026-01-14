@@ -55,8 +55,11 @@ static int cmd_ident(int argc, char **argv)
     ezm_pp_action_t action = EZM_PP_NO_ACTION;
     while(1) {
         action = ezm_pp_main();
-        if(action == EZM_PP_NO_ACTION)
+        if(action != EZM_PP_NO_ACTION) {
+            ezm_pp_drv_set_msg(0, EZM_PP_ACTION_HOST_WAIT, EZM_PP_DRV_SERIAL, 0);
+        } else {
             break;
+        }
     }
     return 0;
 }
@@ -73,8 +76,11 @@ static int cmd_info(int argc, char **argv)
             ezm_pp_action_t action = EZM_PP_NO_ACTION;
         while(1) {
             action = ezm_pp_main();
-            if(action == EZM_PP_NO_ACTION)
+            if(action != EZM_PP_NO_ACTION) {
+                ezm_pp_drv_set_msg(0, EZM_PP_ACTION_HOST_WAIT, EZM_PP_DRV_SERIAL, 0);
+            } else {
                 break;
+            }
         }
     } else {
         CONSOLE_OUTPUT("Invalid image index\n");
@@ -143,6 +149,9 @@ static int cmd_load(int argc, char **argv)
         ezm_pp_drv_set_msg(0, EZM_PP_ACTION_PREPARE_DOWNLOAD, EZM_PP_DRV_SERIAL, img_index);
         while(1) {
             action = ezm_pp_main();
+            if(action != EZM_PP_NO_ACTION && action != EZM_PP_ACTION_HOST_ERROR_DOWNLOAD && action != EZM_PP_ACTION_HOST_ERROR_DOWNLOAD) {
+                ezm_pp_drv_set_msg(0, EZM_PP_ACTION_HOST_WAIT, EZM_PP_DRV_SERIAL, 0);
+            }
             if(action == EZM_PP_NO_ACTION || 
                 action == EZM_PP_ACTION_HOST_ERROR_DOWNLOAD ||
                 action == EZM_PP_ACTION_HOST_END_DOWNLOAD)
@@ -164,6 +173,37 @@ static int cmd_load(int argc, char **argv)
     return 0;
 }
 
+static int cmd_boot(int argc, char **argv)
+{
+    if(argc < 2) {
+        CONSOLE_OUTPUT("Usage: boot [img_index]\n");
+        return 0;
+    }
+
+    if((flag & PRODUCTION_IMG_UPLOADED) == 0) {
+        CONSOLE_OUTPUT("No image uploaded. Use 'upload' command first.\n");
+        return 0;
+    }
+
+    ezm_pp_action_t action = EZM_PP_NO_ACTION;
+    if(isdigit(argv[1][0])) { 
+        uint8_t img_index = (uint8_t)strtol(argv[1], NULL, 10);
+        ezm_pp_drv_set_msg(0, EZM_PP_ACTION_REQ_BOOT_IMG, EZM_PP_DRV_SERIAL, img_index);
+        while(1) {
+            action = ezm_pp_main();
+            if(action != EZM_PP_NO_ACTION) {
+                ezm_pp_drv_set_msg(0, EZM_PP_ACTION_HOST_WAIT, EZM_PP_DRV_SERIAL, 0);
+            } else {
+                break;
+            }
+        }
+    } else {
+        CONSOLE_OUTPUT("Invalid image index\n");
+    }
+
+    return 0;
+}
+
 app_prod_command_t commands[] = {
     { "help", "Shows all commands", cmd_help },
     { "exit", "Goodbye!", cmd_exit },
@@ -171,6 +211,7 @@ app_prod_command_t commands[] = {
     { "info", "Request image information from the device", cmd_info },
     { "upload", "Upload an image", cmd_upload },
     { "load", "Load an image to the device", cmd_load },
+    { "boot", "Boot image in device", cmd_boot},
 };
 
 static int tokenize(char *line, char **argv, int max)
@@ -202,7 +243,6 @@ int main(void)
     CONSOLE_OUTPUT("Welcome to production application!\n");
     flag |= PRODUCTION_PORT_OPENED;
 
-    dispatch(2, (char*[]){"upload", "prog00"});
     while(1) {
         CONSOLE_OUTPUT(">");
         uint8_t input_buffer[128] = {0};
